@@ -23,14 +23,16 @@ Node.prototype.processMessage = function (dataBuffer) {
         return;
     }
 
-    var subjectSocket = this.subjectSockets[dataArray[2]];
-    if (!subjectSocket) {
-        return;
+    var sockets = this.subjectSockets[dataArray[2]],
+        socket;
+    for (var idSocket in sockets) {
+        socket = sockets[idSocket];
+
+        if (socket) {
+            console.log(socket.id, JSON.stringify(dataArray[3]));
+            socket.send(JSON.stringify(dataArray[3]));
+        }
     }
-
-    console.log(subjectSocket.id, JSON.stringify(dataArray[3]));
-
-    subjectSocket.send(JSON.stringify(dataArray[3]));
 };
 
 Node.prototype.listen = function (pullPort, next) {
@@ -124,12 +126,16 @@ Node.prototype.sendMessage = function (from, to, dataArray) {
 
 Node.prototype.registerSocket = function (subjectID, socket) {
     this.rclient.SADD('clients '+subjectID, socket.id+'@'+this.id);
-    this.subjectSockets[subjectID] = socket;
+    if (!this.subjectSockets.hasOwnProperty(subjectID))
+    {
+        this.subjectSockets[subjectID] = {};
+    }
+    this.subjectSockets[subjectID][socket.id+'@'+this.id] = socket;
 };
 
 Node.prototype.unregisterSocket = function (subjectID, socket) {
     this.rclient.SREM('clients '+subjectID, socket.id+'@'+this.id);
-    delete this.subjectSockets[subjectID];
+    delete this.subjectSockets[subjectID][socket.id+'@'+this.id];
 };
 
 module.exports = Node;
